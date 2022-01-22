@@ -12,7 +12,6 @@ main = do
 
   board <- File.readBoard caseName
 
-  let nextCellState = Game.getNextCellState board 1 1
+  let nextBoard = Game.getNextBoardState board
 
-  print nextCellState
-
+  print nextBoard
