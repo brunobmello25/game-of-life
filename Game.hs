@@ -22,10 +22,4 @@ getNextCellState board x y =
       then 'a'
     else if currentCell == 'a' && zombieCount >= 2
       then 'z'
-    else if currentCell == 'a' && aliveCount < 2 && zombieCount < 2
-      then '.'
-    else if currentCell == 'a' && aliveCount > 3 && zombieCount == 0
-      then '.'
-    else if currentCell == 'z' && aliveCount == 0
-      then '.'
-    else currentCell
+    else if ((currentCell == 'a' && aliveCount < 2 && zombieCount < 2) || (currentCell == 'a' && aliveCount > 3 && zombieCount == 0)) || (currentCell == 'z' && aliveCount == 0) then '.' else currentCell
