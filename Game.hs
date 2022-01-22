@@ -2,12 +2,17 @@ module Game where
 
 countCellsAroundCoordinate :: [[Char]] -> Int -> Int -> Char -> Int
 countCellsAroundCoordinate grid x y kind =
-  length $ filter (\(a, b) -> grid !! b !! a == kind) [(a, b) |
-    a <- [x - 1 .. x + 1],
-    a >= 0,
-    b <- [y - 1 .. y + 1],
-    b >= 0,
-    (a, b) /= (x, y)]
+  let
+    coordinates = [(a, b) |
+      a <- [x - 1 .. x + 1],
+      a >= 0,
+      b <- [y - 1 .. y + 1],
+      b >= 0,
+      b < length grid,
+      a < length (grid !! b),
+      (a, b) /= (x, y)]
+  in
+  length $ filter (\(a, b) -> grid !! b !! a == kind) coordinates
 
 -- TODO
 getNextCellState :: [[Char]] -> Int -> Int -> Char
