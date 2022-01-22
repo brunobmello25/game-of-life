@@ -8,11 +8,11 @@ countCellsAroundCoordinate grid x y kind =
       a >= 0,
       b <- [y - 1 .. y + 1],
       b >= 0,
-      b < length grid,
-      a < length (grid !! b),
+      a < length grid,
+      b < length (grid !! a),
       (a, b) /= (x, y)]
   in
-  length $ filter (\(a, b) -> grid !! b !! a == kind) coordinates
+  length $ filter (\(a, b) -> grid !! a !! b == kind) coordinates
 
 -- TODO
 getNextCellState :: [[Char]] -> Int -> Int -> Char
