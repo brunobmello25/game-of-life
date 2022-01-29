@@ -1,7 +1,6 @@
 module Main where
 
-import System.Directory.Internal.Prelude (getArgs)
-
+import System.Environment
 import Board
 import Game
 
@@ -22,4 +21,4 @@ main = do
   putStrLn ""
   putStrLn "Tabuleiro resultante:"
   putStrLn ""
-  print resultBoard
+  Board.printBoard resultBoard

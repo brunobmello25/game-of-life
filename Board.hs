@@ -49,3 +49,10 @@ getNextBoardState board =
     boardNextState = map (getNextRowState board) [0 .. length board - 1]
   in
     boardNextState
+
+printBoard :: [String] -> IO ()
+printBoard board =
+  let
+    boardString = unlines board
+  in
+    putStrLn boardString
