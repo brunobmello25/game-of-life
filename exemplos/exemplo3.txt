@@ -1,0 +1,8 @@
+.zz.......zz...a
+....aaa...zz...a
+..........zz...a
+.zz.aaa...zz...a
+...zzz....zz...a
+aaaaaa....zz...a
+......aa..zz...a
+..zzz.....zz...a

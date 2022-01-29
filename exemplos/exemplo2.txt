@@ -1,0 +1,10 @@
+.....a.z..
+.aa.zzz...
+.z....aa..
+zzz...aaa.
+.aa..zaa..
+aaa..zzz..
+.aa....aaa
+zz..zzzzz.
+......z...
+zzz.......
