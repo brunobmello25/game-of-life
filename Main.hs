@@ -2,16 +2,15 @@ module Main where
 
 import System.Directory.Internal.Prelude (getArgs)
 
-import File
-import Game
+import Board
 
 main = do
   args <- getArgs
   let caseName = head args
   let iterationsCount = read(args !! 1) :: Int
 
-  board <- File.readBoard caseName
+  board <- Board.readBoard caseName
 
-  let nextBoard = Game.getNextBoardState board
+  let nextBoard = Board.getNextBoardState board
 
   print nextBoard

@@ -1,20 +1,26 @@
-module Game where
+module Board where
+
+readBoard :: String -> IO [String]
+readBoard caseName = do
+  let filePath = "exemplos/" ++ caseName ++ ".txt"
+  
+  contents <- readFile filePath
+  return $ lines contents
 
 countCellsAroundCoordinate :: [String] -> Int -> Int -> Char -> Int
-countCellsAroundCoordinate grid x y kind =
+countCellsAroundCoordinate board x y kind =
   let
     coordinates = [(a, b) |
       a <- [x - 1 .. x + 1],
       a >= 0,
       b <- [y - 1 .. y + 1],
       b >= 0,
-      a < length grid,
-      b < length (grid !! a),
+      a < length board,
+      b < length (board !! a),
       (a, b) /= (x, y)]
   in
-  length $ filter (\(a, b) -> grid !! a !! b == kind) coordinates
+  length $ filter (\(a, b) -> board !! a !! b == kind) coordinates
 
--- TODO
 getNextCellState :: [String] -> Int -> Int -> Char
 getNextCellState board x y =
   let
