@@ -11,10 +11,47 @@ const screenHeight = 800;
 const boardWidth = screenWidth / cellSize;
 const boardHeight = screenHeight / cellSize;
 
+const State = enum {
+    Drawing,
+    Running,
+    Finished,
+};
+
+const Game = struct {
+    board: Board,
+    state: State = .Drawing,
+
+    pub fn init(allocator: std.mem.Allocator) !*Game {
+        const board = try init_board(allocator);
+        const game = try allocator.create(Game);
+        game.* = Game{
+            .board = board,
+        };
+        return game;
+    }
+
+    pub fn update(self: *Game) void {
+        // TODO: move this to a generic input handling function
+        handle_cell_click(self);
+        handle_start_simulating(self);
+    }
+
+    pub fn draw(self: *Game) void {
+        rl.beginDrawing();
+        defer rl.endDrawing();
+
+        rl.clearBackground(.dark_gray);
+
+        draw_board(self.board);
+    }
+};
+
 pub fn main() anyerror!void {
     var gpa_impl = std.heap.GeneralPurposeAllocator(.{}){};
     const gpa = gpa_impl.allocator();
-    const board = try init_board(gpa);
+
+    const game = try Game.init(gpa);
+    print("Game initialized with {any} state.\n", .{game.state});
 
     rl.initWindow(screenWidth, screenHeight, "Game of Life - brunobmello25");
     defer rl.closeWindow();
@@ -22,13 +59,9 @@ pub fn main() anyerror!void {
     rl.setTargetFPS(60);
 
     while (!rl.windowShouldClose()) {
-        update(board);
-        draw(board);
+        game.update();
+        game.draw();
     }
-}
-
-fn update(board: Board) void {
-    handle_cell_click(board);
 }
 
 fn draw(board: Board) void {
@@ -40,7 +73,9 @@ fn draw(board: Board) void {
     draw_board(board);
 }
 
-fn handle_cell_click(board: Board) void {
+fn handle_cell_click(game: *Game) void {
+    if (game.state != .Drawing) return;
+
     if (rl.isMouseButtonPressed(rl.MouseButton.left)) {
         const mouseX = rl.getMouseX();
         const mouseY = rl.getMouseY();
@@ -51,8 +86,16 @@ fn handle_cell_click(board: Board) void {
 
         const index = linearize(x, y);
         if (index >= 0 and index < boardWidth * boardHeight) {
-            board[@intCast(index)] = !board[@intCast(index)];
+            game.board[@intCast(index)] = !game.board[@intCast(index)];
         }
+    }
+}
+
+fn handle_start_simulating(game: *Game) void {
+    if (game.state != .Drawing) return;
+
+    if (rl.isKeyPressed(rl.KeyboardKey.enter)) {
+        game.state = .Running;
     }
 }
 
