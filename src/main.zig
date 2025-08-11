@@ -3,10 +3,13 @@ const std = @import("std");
 
 const Board = []bool;
 
-const boardWidth = 35;
-const boardHeight = 35;
-const screenWidth = boardWidth * 21;
-const screenHeight = boardHeight * 21;
+const cellSize = 15;
+
+const screenWidth = 800;
+const screenHeight = 800;
+
+const boardWidth = screenWidth / cellSize;
+const boardHeight = screenHeight / cellSize;
 
 pub fn main() anyerror!void {
     var gpa_impl = std.heap.GeneralPurposeAllocator(.{}){};
@@ -25,6 +28,19 @@ pub fn main() anyerror!void {
 }
 
 fn update(board: Board) void {
+    handle_cell_click(board);
+}
+
+fn draw(board: Board) void {
+    rl.beginDrawing();
+    defer rl.endDrawing();
+
+    rl.clearBackground(.dark_gray);
+
+    draw_board(board);
+}
+
+fn handle_cell_click(board: Board) void {
     if (rl.isMouseButtonPressed(rl.MouseButton.left)) {
         const mouseX = rl.getMouseX();
         const mouseY = rl.getMouseY();
@@ -40,39 +56,24 @@ fn update(board: Board) void {
     }
 }
 
-fn draw(board: Board) void {
-    rl.beginDrawing();
-    defer rl.endDrawing();
-
-    rl.clearBackground(.dark_gray);
-
-    draw_board(board);
-}
-
 fn screen_coord_to_board_coord(x: i32, y: i32) struct { i32, i32 } {
-    const cellwidth = screenWidth / boardWidth;
-    const cellheight = screenHeight / boardHeight;
-
-    const boardX = @divTrunc(x, cellwidth);
-    const boardY = @divTrunc(y, cellheight);
+    const boardX = @divTrunc(x, cellSize);
+    const boardY = @divTrunc(y, cellSize);
 
     return .{ boardX, boardY };
 }
 
 fn draw_board(board: Board) void {
-    const cellwidth = screenWidth / boardWidth;
-    const cellheight = screenHeight / boardHeight;
-
     for (0..boardHeight) |Y| {
         for (0..boardWidth) |X| {
             const x: i32 = @intCast(X);
             const y: i32 = @intCast(Y);
             if (is_alive(board, x, y)) {
-                rl.drawRectangle(x * cellwidth, y * cellheight, cellwidth, cellheight, .white);
-                rl.drawRectangleLines(x * cellwidth, y * cellheight, cellwidth, cellheight, .dark_gray);
+                rl.drawRectangle(x * cellSize, y * cellSize, cellSize, cellSize, .white);
+                rl.drawRectangleLines(x * cellSize, y * cellSize, cellSize, cellSize, .dark_gray);
             } else {
-                rl.drawRectangle(x * cellwidth, y * cellheight, cellwidth, cellheight, .black);
-                rl.drawRectangleLines(x * cellwidth, y * cellheight, cellwidth, cellheight, .dark_gray);
+                rl.drawRectangle(x * cellSize, y * cellSize, cellSize, cellSize, .black);
+                rl.drawRectangleLines(x * cellSize, y * cellSize, cellSize, cellSize, .dark_gray);
             }
         }
     }
