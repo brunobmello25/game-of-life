@@ -3,7 +3,7 @@ const std = @import("std");
 
 const Board = []bool;
 
-const cellSize = 15;
+const cellSize = 80;
 
 const screenWidth = 800;
 const screenHeight = 800;
@@ -19,6 +19,7 @@ const State = enum {
 
 const Game = struct {
     board: Board,
+    allocator: std.mem.Allocator,
     state: State = .Drawing,
 
     pub fn init(allocator: std.mem.Allocator) !*Game {
@@ -26,14 +27,17 @@ const Game = struct {
         const game = try allocator.create(Game);
         game.* = Game{
             .board = board,
+            .allocator = allocator,
         };
         return game;
     }
 
-    pub fn update(self: *Game) void {
+    pub fn update(self: *Game) !void {
         // TODO: move this to a generic input handling function
         handle_cell_click(self);
         handle_start_simulating(self);
+
+        try run_simulation(self);
     }
 
     pub fn draw(self: *Game) void {
@@ -51,7 +55,6 @@ pub fn main() anyerror!void {
     const gpa = gpa_impl.allocator();
 
     const game = try Game.init(gpa);
-    print("Game initialized with {any} state.\n", .{game.state});
 
     rl.initWindow(screenWidth, screenHeight, "Game of Life - brunobmello25");
     defer rl.closeWindow();
@@ -59,18 +62,54 @@ pub fn main() anyerror!void {
     rl.setTargetFPS(60);
 
     while (!rl.windowShouldClose()) {
-        game.update();
+        try game.update();
         game.draw();
     }
 }
 
-fn draw(board: Board) void {
-    rl.beginDrawing();
-    defer rl.endDrawing();
+fn run_simulation(game: *Game) !void {
+    if (game.state != .Running) return;
 
-    rl.clearBackground(.dark_gray);
+    for (0..@intCast(boardWidth * boardHeight)) |i| {
+        const x, const y = delinearize(@intCast(i));
+        const aliveNeighbors = count_alive_neighbors(game.board, @intCast(x), @intCast(y));
 
-    draw_board(board);
+        if (is_alive(game.board, @intCast(x), @intCast(y))) {
+            if (aliveNeighbors < 2 or aliveNeighbors > 3) {
+                game.board[i] = false; // Cell dies
+            } else {
+                game.board[i] = true; // Cell stays alive
+            }
+        } else {
+            if (aliveNeighbors == 3) {
+                game.board[i] = true; // Cell becomes alive
+            } else {
+                game.board[i] = false; // Cell stays dead
+            }
+        }
+    }
+}
+
+fn count_alive_neighbors(board: Board, x: i32, y: i32) i32 {
+    var count: i32 = 0;
+
+    var nx: i32 = -1;
+    while (nx <= 1) : (nx += 1) {
+        var ny: i32 = -1;
+        while (ny <= 1) : (ny += 1) {
+            if (nx == x and ny == y) continue;
+            if (!is_valid_board_coord(x, y)) continue;
+            if (is_alive(board, @intCast(nx), @intCast(ny))) {
+                count += 1;
+            }
+        }
+    }
+
+    return count;
+}
+
+fn is_valid_board_coord(x: i32, y: i32) bool {
+    return x >= 0 and x < boardWidth and y >= 0 and y < boardHeight;
 }
 
 fn handle_cell_click(game: *Game) void {
@@ -96,6 +135,7 @@ fn handle_start_simulating(game: *Game) void {
 
     if (rl.isKeyPressed(rl.KeyboardKey.enter)) {
         game.state = .Running;
+        rl.setTargetFPS(1);
     }
 }
 
@@ -135,8 +175,8 @@ fn linearize(x: i32, y: i32) i32 {
 }
 
 fn delinearize(index: i32) struct { i32, i32 } {
-    const x = index % boardWidth;
-    const y = index / boardWidth;
+    const x = @mod(index, boardWidth);
+    const y = @divFloor(index, boardWidth);
     return .{ x, y };
 }
 
