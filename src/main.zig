@@ -21,6 +21,7 @@ const Game = struct {
     board: Board,
     allocator: std.mem.Allocator,
     state: State = .Drawing,
+    lastCellClicked: ?i32 = null,
 
     pub fn init(allocator: std.mem.Allocator) !*Game {
         const board = try init_board(allocator);
@@ -34,7 +35,7 @@ const Game = struct {
 
     pub fn update(self: *Game) !void {
         // TODO: move this to a generic input handling function
-        handle_cell_click(self);
+        handle_mouse_held(self);
         handle_start_simulating(self);
 
         try run_simulation(self);
@@ -115,22 +116,18 @@ fn is_valid_board_coord(x: i32, y: i32) bool {
     return x >= 0 and x < boardWidth and y >= 0 and y < boardHeight;
 }
 
-fn handle_cell_click(game: *Game) void {
+fn handle_mouse_held(game: *Game) void {
     if (game.state != .Drawing) return;
 
-    if (rl.isMouseButtonPressed(rl.MouseButton.left)) {
-        const mouseX = rl.getMouseX();
-        const mouseY = rl.getMouseY();
+    if (!rl.isMouseButtonDown(rl.MouseButton.left)) return;
 
-        const boardCoord = screen_coord_to_board_coord(mouseX, mouseY);
-        const x = boardCoord.@"0";
-        const y = boardCoord.@"1";
+    const boardCoord = screen_coord_to_board_coord(rl.getMouseX(), rl.getMouseY());
+    const boardCoordLin = linearize(boardCoord.@"0", boardCoord.@"1");
 
-        const index = linearize(x, y);
-        if (index >= 0 and index < boardWidth * boardHeight) {
-            game.board[@intCast(index)] = !game.board[@intCast(index)];
-        }
-    }
+    if (game.lastCellClicked != null and game.lastCellClicked.? == boardCoordLin) return;
+
+    game.lastCellClicked = boardCoordLin;
+    game.board[@intCast(boardCoordLin)] = !game.board[@intCast(boardCoordLin)];
 }
 
 fn handle_start_simulating(game: *Game) void {
