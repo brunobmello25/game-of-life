@@ -3,7 +3,7 @@ const std = @import("std");
 
 const Board = []bool;
 
-const cellSize = 80;
+const cellSize = 10;
 
 const screenWidth = 800;
 const screenHeight = 800;
@@ -93,15 +93,18 @@ fn run_simulation(game: *Game) !void {
 fn count_alive_neighbors(board: Board, x: i32, y: i32) i32 {
     var count: i32 = 0;
 
-    var nx: i32 = -1;
-    while (nx <= 1) : (nx += 1) {
-        var ny: i32 = -1;
-        while (ny <= 1) : (ny += 1) {
-            if (nx == x and ny == y) continue;
-            if (!is_valid_board_coord(x, y)) continue;
-            if (is_alive(board, @intCast(nx), @intCast(ny))) {
-                count += 1;
-            }
+    const directions = [_]struct { i32, i32 }{
+        .{ -1, -1 }, .{ 0, -1 }, .{ 1, -1 },
+        .{ -1, 0 },  .{ 1, 0 },  .{ -1, 1 },
+        .{ 0, 1 },   .{ 1, 1 },
+    };
+
+    for (directions) |dir| {
+        const neighborX = x + dir.@"0";
+        const neighborY = y + dir.@"1";
+
+        if (is_valid_board_coord(neighborX, neighborY) and is_alive(board, neighborX, neighborY)) {
+            count += 1;
         }
     }
 
@@ -135,7 +138,7 @@ fn handle_start_simulating(game: *Game) void {
 
     if (rl.isKeyPressed(rl.KeyboardKey.enter)) {
         game.state = .Running;
-        rl.setTargetFPS(1);
+        rl.setTargetFPS(15);
     }
 }
 
