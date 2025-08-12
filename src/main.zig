@@ -21,14 +21,17 @@ const Game = struct {
     board: Board,
     allocator: std.mem.Allocator,
     state: State = .Drawing,
-    lastCellClicked: ?i32 = null,
+    lastCellChanged: ?usize = null,
+    currentFlippedCells: std.AutoHashMap(usize, bool),
 
     pub fn init(allocator: std.mem.Allocator) !*Game {
         const board = try init_board(allocator);
         const game = try allocator.create(Game);
+        const currentFlippedCells = std.AutoHashMap(usize, bool).init(allocator);
         game.* = Game{
             .board = board,
             .allocator = allocator,
+            .currentFlippedCells = currentFlippedCells,
         };
         return game;
     }
@@ -117,17 +120,25 @@ fn is_valid_board_coord(x: i32, y: i32) bool {
 }
 
 fn handle_mouse_held(game: *Game) void {
-    if (game.state != .Drawing) return;
+    if (rl.isMouseButtonReleased(rl.MouseButton.left)) {
+        game.lastCellChanged = null;
+        game.currentFlippedCells.clearAndFree();
+    }
 
+    if (game.state != .Drawing) return;
     if (!rl.isMouseButtonDown(rl.MouseButton.left)) return;
 
     const boardCoord = screen_coord_to_board_coord(rl.getMouseX(), rl.getMouseY());
-    const boardCoordLin = linearize(boardCoord.@"0", boardCoord.@"1");
+    const boardCoordLin: usize = @intCast(linearize(boardCoord.@"0", boardCoord.@"1"));
+    if (game.lastCellChanged != null and game.lastCellChanged.? == boardCoordLin) return;
 
-    if (game.lastCellClicked != null and game.lastCellClicked.? == boardCoordLin) return;
+    if (game.currentFlippedCells.get(boardCoordLin) != null) {
+        return;
+    }
 
-    game.lastCellClicked = boardCoordLin;
-    game.board[@intCast(boardCoordLin)] = !game.board[@intCast(boardCoordLin)];
+    game.lastCellChanged = boardCoordLin;
+    game.currentFlippedCells.put(boardCoordLin, true) catch {};
+    game.board[boardCoordLin] = !game.board[boardCoordLin];
 }
 
 fn handle_start_simulating(game: *Game) void {
@@ -171,6 +182,7 @@ fn is_alive(board: Board, x: i32, y: i32) bool {
     return board[@intCast(index)];
 }
 
+// FIXME: should return usize
 fn linearize(x: i32, y: i32) i32 {
     return y * boardWidth + x;
 }
