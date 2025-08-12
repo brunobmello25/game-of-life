@@ -138,6 +138,7 @@ fn handle_start_simulating(game: *Game) void {
 
     if (rl.isKeyPressed(rl.KeyboardKey.enter)) {
         game.state = .Running;
+        // FIXME: probably not the best way to handle slow simulation
         rl.setTargetFPS(15);
     }
 }
