@@ -19,6 +19,7 @@ const State = enum {
 
 const Game = struct {
     board: Board,
+    boardDrawed: ?Board,
     allocator: std.mem.Allocator,
     state: State = .Drawing,
     lastCellChanged: ?usize = null,
@@ -32,6 +33,7 @@ const Game = struct {
             .board = board,
             .allocator = allocator,
             .currentFlippedCells = currentFlippedCells,
+            .boardDrawed = null,
         };
         return game;
     }
@@ -39,7 +41,8 @@ const Game = struct {
     pub fn update(self: *Game) !void {
         // TODO: move this to a generic input handling function
         handle_mouse_held(self);
-        handle_start_simulating(self);
+        try handle_start_simulating(self);
+        handle_reset_to_drawing(self);
 
         try run_simulation(self);
     }
@@ -141,14 +144,39 @@ fn handle_mouse_held(game: *Game) void {
     game.board[boardCoordLin] = !game.board[boardCoordLin];
 }
 
-fn handle_start_simulating(game: *Game) void {
+fn handle_reset_to_drawing(game: *Game) void {
+    if (game.state != .Running) return;
+
+    if (rl.isKeyPressed(rl.KeyboardKey.r)) {
+        game.state = .Drawing;
+
+        game.allocator.free(game.board);
+        game.board = game.boardDrawed.?;
+        game.boardDrawed = null;
+        game.lastCellChanged = null;
+        game.currentFlippedCells.clearAndFree();
+        rl.setTargetFPS(60);
+    }
+}
+
+fn handle_start_simulating(game: *Game) !void {
     if (game.state != .Drawing) return;
 
     if (rl.isKeyPressed(rl.KeyboardKey.enter)) {
         game.state = .Running;
+        game.boardDrawed = try clone_board(game.board, game.allocator);
+
         // FIXME: probably not the best way to handle slow simulation
         rl.setTargetFPS(15);
     }
+}
+
+fn clone_board(board: Board, allocator: std.mem.Allocator) !Board {
+    var clonedBoard = try std.ArrayList(bool).initCapacity(allocator, board.len);
+    for (board) |cell| {
+        try clonedBoard.append(cell);
+    }
+    return try clonedBoard.toOwnedSlice();
 }
 
 fn screen_coord_to_board_coord(x: i32, y: i32) struct { i32, i32 } {
