@@ -22,17 +22,13 @@ const Game = struct {
     boardDrawed: ?Board,
     allocator: std.mem.Allocator,
     state: State = .Drawing,
-    lastCellChanged: ?usize = null,
-    currentFlippedCells: std.AutoHashMap(usize, bool),
 
     pub fn init(allocator: std.mem.Allocator) !*Game {
         const board = try init_board(allocator);
         const game = try allocator.create(Game);
-        const currentFlippedCells = std.AutoHashMap(usize, bool).init(allocator);
         game.* = Game{
             .board = board,
             .allocator = allocator,
-            .currentFlippedCells = currentFlippedCells,
             .boardDrawed = null,
         };
         return game;
@@ -123,25 +119,17 @@ fn is_valid_board_coord(x: i32, y: i32) bool {
 }
 
 fn handle_mouse_held(game: *Game) void {
-    if (rl.isMouseButtonReleased(rl.MouseButton.left)) {
-        game.lastCellChanged = null;
-        game.currentFlippedCells.clearAndFree();
-    }
-
     if (game.state != .Drawing) return;
-    if (!rl.isMouseButtonDown(rl.MouseButton.left)) return;
+    if (!rl.isMouseButtonDown(rl.MouseButton.left) and !rl.isMouseButtonDown(rl.MouseButton.right)) return;
 
     const boardCoord = screen_coord_to_board_coord(rl.getMouseX(), rl.getMouseY());
     const boardCoordLin: usize = @intCast(linearize(boardCoord.@"0", boardCoord.@"1"));
-    if (game.lastCellChanged != null and game.lastCellChanged.? == boardCoordLin) return;
 
-    if (game.currentFlippedCells.get(boardCoordLin) != null) {
-        return;
+    if (rl.isMouseButtonDown(rl.MouseButton.left)) {
+        game.board[boardCoordLin] = true;
+    } else if (rl.isMouseButtonDown(rl.MouseButton.right)) {
+        game.board[boardCoordLin] = false;
     }
-
-    game.lastCellChanged = boardCoordLin;
-    game.currentFlippedCells.put(boardCoordLin, true) catch {};
-    game.board[boardCoordLin] = !game.board[boardCoordLin];
 }
 
 fn handle_reset_to_drawing(game: *Game) void {
@@ -153,8 +141,6 @@ fn handle_reset_to_drawing(game: *Game) void {
         game.allocator.free(game.board);
         game.board = game.boardDrawed.?;
         game.boardDrawed = null;
-        game.lastCellChanged = null;
-        game.currentFlippedCells.clearAndFree();
         rl.setTargetFPS(60);
     }
 }
