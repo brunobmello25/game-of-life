@@ -19,19 +19,31 @@ const State = enum {
 
 const Game = struct {
     board: Board,
+    nextBoard: Board,
     boardDrawed: ?Board,
     allocator: std.mem.Allocator,
     state: State = .Drawing,
 
     pub fn init(allocator: std.mem.Allocator) !*Game {
         const board = try init_board(allocator);
+        const nextBoard = try init_board(allocator);
         const game = try allocator.create(Game);
         game.* = Game{
             .board = board,
+            .nextBoard = nextBoard,
             .allocator = allocator,
             .boardDrawed = null,
         };
         return game;
+    }
+
+    pub fn deinit(self: *Game) void {
+        self.allocator.free(self.board);
+        self.allocator.free(self.nextBoard);
+        if (self.boardDrawed) |boardDrawed| {
+            self.allocator.free(boardDrawed);
+        }
+        self.allocator.destroy(self);
     }
 
     pub fn update(self: *Game) !void {
@@ -58,6 +70,7 @@ pub fn main() anyerror!void {
     const gpa = gpa_impl.allocator();
 
     const game = try Game.init(gpa);
+    defer game.deinit();
 
     rl.initWindow(screenWidth, screenHeight, "Game of Life - brunobmello25");
     defer rl.closeWindow();
@@ -79,18 +92,22 @@ fn run_simulation(game: *Game) !void {
 
         if (is_alive(game.board, @intCast(x), @intCast(y))) {
             if (aliveNeighbors < 2 or aliveNeighbors > 3) {
-                game.board[i] = false; // Cell dies
+                game.nextBoard[i] = false;
             } else {
-                game.board[i] = true; // Cell stays alive
+                game.nextBoard[i] = true;
             }
         } else {
             if (aliveNeighbors == 3) {
-                game.board[i] = true; // Cell becomes alive
+                game.nextBoard[i] = true;
             } else {
-                game.board[i] = false; // Cell stays dead
+                game.nextBoard[i] = false;
             }
         }
     }
+
+    const temp = game.board;
+    game.board = game.nextBoard;
+    game.nextBoard = temp;
 }
 
 fn count_alive_neighbors(board: Board, x: i32, y: i32) i32 {
@@ -141,6 +158,11 @@ fn handle_reset_to_drawing(game: *Game) void {
         game.allocator.free(game.board);
         game.board = game.boardDrawed.?;
         game.boardDrawed = null;
+
+        for (0..@intCast(boardWidth * boardHeight)) |i| {
+            game.nextBoard[i] = false;
+        }
+
         rl.setTargetFPS(60);
     }
 }
